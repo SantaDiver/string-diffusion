@@ -8,9 +8,11 @@ BALANCE_ONCE_AT = 100
 	mpic++ -o $@.exe $< $(EXTRAFILES)
 	
 bg: strdif.cc
-	mpicxx -o $@.exe $< $(EXTRAFILES) $(COMM_WIDTH)
+	mpicxx -o $@.exe $< $(EXTRAFILES)
 
 bgreport:
+	rm -rf reportdata
+	touch ./reportdata
 	mpisubmit.bg -n 128 bg.exe $(STEPS_TO_COUNT) $(COMM_WIDTH) 1 >> ./reportdata
 	mpisubmit.bg -n 128 bg.exe $(STEPS_TO_COUNT) $(COMM_WIDTH) 10 >> ./reportdata
 	mpisubmit.bg -n 128 bg.exe $(STEPS_TO_COUNT) $(COMM_WIDTH) 100 >> ./reportdata
