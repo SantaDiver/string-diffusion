@@ -1,7 +1,7 @@
 #ifndef SYS_INCLUDES
 #define SYS_INCLUDES
 
-#include <omp.h>
+// #include <omp.h>
 #include <math.h>
 #include <string.h>
 #include <ctime>

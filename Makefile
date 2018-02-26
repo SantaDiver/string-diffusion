@@ -2,7 +2,14 @@ all: strdif
 EXTRAFILES = pieceOfWebFunc.cc generatingFuncs.cc loadExchange.cc
 
 %: %.cc
-	mpic++ -o $@.exe $< $(EXTRAFILES) -fopenmp -m64
+	mpic++ -o $@.exe $< $(EXTRAFILES)
+	
+bg:
+	mpicxx -o $@.exe $< $(EXTRAFILES)
+
+smt:
+	mpisubmit.bg -n 128 strdif.exe
+
 
 report: all
 	rm -rf reportdata
