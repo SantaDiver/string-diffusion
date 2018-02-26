@@ -34,20 +34,20 @@ int main(int argc, char** argv)
 
         float coef = pow(tau, 2) * pow (c, 2) / pow(h, 2);
 
-        int stepsToCount = 100;
+        int stepsToCount = atoi(argv[1]);
 
-        int comm_width = 4;
+        int comm_width = atoi(argv[2]);
         int comm_length = comm_size / comm_width;
 
         if(comm_width*comm_length != comm_size)
             throw "Wrong comm width!";
 
-        vector<int> widthFrags(comm_width, 10);
-        vector<int> lengthFrags(comm_length, 10);
+        vector<int> widthFrags(comm_width, 100);
+        vector<int> lengthFrags(comm_length, 100);
 
         // ------------------ Here may add some changes to frags --------------
-        widthFrags[comm_width-1] = 10;
-        lengthFrags[comm_length-1] = 10;
+        widthFrags[comm_width-1] = 5;
+        lengthFrags[comm_length-1] = 5;
         // --------------------------------------------------------------------
 
         PieceOfWebFunc piece = calcPiece(myRank, comm_width, comm_length,
@@ -67,12 +67,14 @@ int main(int argc, char** argv)
         double startTime = MPI_Wtime();
 
         float diffCoef = calcCoef(myRank, comm_width, comm_length);
-
+        
+        int balanceOnceAt = atoi(argv[3]);
         for(int i=0; i<stepsToCount; ++i) {
             piece.calcRes();
 
             MPI_Barrier(MPI_COMM_WORLD);
-
+            if (i%balanceOnceAt != 0) continue;
+            
             int lengthLoad = piece.getLength();
             if (myRank / comm_width != 0 && comm_length > 1)
                 sendLoadToTop(piece, myRank, comm_width);
@@ -145,7 +147,7 @@ int main(int argc, char** argv)
         double maxtime;
         MPI_Reduce(&workTime, &maxtime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 
-        if (myRank==0 && !debug) cout << maxtime << endl;
+        if (myRank==0 && !debug) cout << balanceOnceAt << " " << maxtime << endl;
 
     } catch (char const *error) {
         cerr<<"Error: " << error << " at rank " << myRank << endl;
