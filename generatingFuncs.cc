@@ -1,5 +1,5 @@
 #include "generatingFuncs.h"
 
-float generateZeroes(uint x, uint y) {
+float generateZeroes(int x, int y) {
     return 0.0;
 }

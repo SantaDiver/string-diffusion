@@ -23,18 +23,18 @@ private:
   vector< vector<float> > _asideBottom;
 
   // Length of piece
-  uint _width; // Means horizontal
-  uint _length; // Means vertical
+  int _width; // Means horizontal
+  int _length; // Means vertical
 
-  uint _rank;
-  uint _comm_width; // Means horizontal
-  uint _comm_length; // Means vertical
+  int _rank;
+  int _comm_width; // Means horizontal
+  int _comm_length; // Means vertical
 
-  uint _stepsCounter;
+  int _stepsCounter;
 public:
     PieceOfWebFunc(
         float coef, vector< vector<float> > &t0, vector< vector<float> > &t1,
-        uint rank, uint comm_width, uint comm_length
+        int rank, int comm_width, int comm_length
     );
 
     void calcRes();
@@ -43,10 +43,10 @@ public:
         vector< vector<float> > &asideRight, vector< vector<float> > &asideTop,
         vector< vector<float> > &asideBottom);
 
-    pair< vector<vector<float> >, vector< vector<float> > > cutPieceFromLeft(uint l);
-    pair< vector<vector<float> >, vector< vector<float> > > cutPieceFromRight(uint l);
-    pair< vector<vector<float> >, vector< vector<float> > > cutPieceFromTop(uint l);
-    pair< vector<vector<float> >, vector< vector<float> > > cutPieceFromBottom(uint l);
+    pair< vector<vector<float> >, vector< vector<float> > > cutPieceFromLeft(int l);
+    pair< vector<vector<float> >, vector< vector<float> > > cutPieceFromRight(int l);
+    pair< vector<vector<float> >, vector< vector<float> > > cutPieceFromTop(int l);
+    pair< vector<vector<float> >, vector< vector<float> > > cutPieceFromBottom(int l);
 
     void addPieceToLeft(vector< vector<float> >pieceOfRes, vector< vector<float> > pieceOfPrev);
     void addPieceToRight(vector< vector<float> > pieceOfRes, vector< vector<float> > pieceOfPrev);
@@ -54,8 +54,8 @@ public:
     void addPieceToBottom(vector< vector<float> > pieceOfRes, vector< vector<float> > pieceOfPrev);
 
     vector< vector<float> > getRes();
-    uint getWidth(); // Means horizontal
-    uint getLength(); // Means vertical
+    int getWidth(); // Means horizontal
+    int getLength(); // Means vertical
 
 };
 

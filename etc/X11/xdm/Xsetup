@@ -1,0 +1,216 @@
+#!/bin/sh
+#
+# Xsetup:	Setup an xlogin's display
+#
+# Copyright (c) 1998-2003 SuSE GmbH Nuernberg, Germany.
+# please report bugfixes or comments at http://www.suse.de/feedback.
+#
+# Author: Werner Fink,   <http://www.suse.de/feedback>
+#
+ LIBDIR=/usr/X11R6/lib/X11
+ ETCDIR=/etc/X11
+ XDMDIR=${ETCDIR}/xdm
+ BINDIR=/usr/X11R6/bin
+
+no_exit_on_failed_exec=1
+type shopt &> /dev/null && shopt -s execfail
+set +e     &> /dev/null
+
+#
+# Background picture for plain xdm:
+# Store your preferred picture in XPM format (see xv(1) or ppm(5))
+# You can run gzip on the file BackGround.xpm to save disk space.
+#
+ background=${XDMDIR}/BackGround.xpm
+
+#
+# Special screensaver parameters for xset, see manual page xset(1x).
+# Default is no special parameters.  Use DPMS (VESA Power Savings
+# Protocol) if USEDPMS is set to "yes".
+#
+ SAVESC=""
+ USEDPMS="no"
+
+#
+# Default settings
+#
+# Note: If you need a special key mapping copy Xmodmap.remote to
+# Xmodmap.<full_qualified_domain_name_of_the_terminal> where the
+# suffix is the full qualified name identical with  the value of
+# the DISPLAY variable without `:0', `:1' ... e.g.
+# Xmodmap.xterminal.uni-yx.de
+#
+# Note that xkb and xmodmap should not be mixed.
+
+ sysmodmap=${ETCDIR}/Xmodmap
+ defmodmap=${ETCDIR}/Xmodmap.remote
+hostmodmap=${ETCDIR}/Xmodmap.${DISPLAY%:*}
+ sysxkbmap=${ETCDIR}/Xkbmap
+ defxkbmap=${ETCDIR}/Xkbmap.remote
+hostxkbmap=${ETCDIR}/Xkbmap.${DISPLAY%:*}
+      xset=${BINDIR}/xset
+   xmodmap=${BINDIR}/xmodmap
+    xkbmap=${BINDIR}/setxkbmap
+   xpmroot=${BINDIR}/xpmroot
+  xsetroot=${BINDIR}/xsetroot
+  xconsole=${BINDIR}/xconsole
+  xmessage=${BINDIR}/xmessage
+      xrdb=${BINDIR}/xrdb
+   backprg=${BINDIR}/BackGround
+   halporp=/usr/bin/hal-find-by-property
+     xvkbd=${BINDIR}/xvkbd
+   glxinfo=${BINDIR}/glxinfo
+    compiz=/usr/bin/compiz
+       gwd=/usr/bin/gnome-window-decorator
+
+#
+# Check if the machine is a TabletPC and start
+# xvkbd in xdm do be able to input username and password 
+# 
+$halporp --key system.formfactor.subtype --string tabletpc
+if test $? -eq 0 -a -x $xvkbd ; then 
+    ( sleep 1; HOME=/root exec $xvkbd -compact -geometry -0-0 ) & echo $! > /var/run/xvkbd.pid
+fi
+
+#
+# Check if kdm is running
+#
+  kdmpid=/var/run/kdm.pid
+kde3root=/opt/kde3/bin
+     kdm=no
+
+test -x ${kde3root}/kdm && \
+  /sbin/checkproc -p $kdmpid ${kde3root}/kdm &> /dev/null && kdm=yes
+
+#
+# Check if gdm is running
+#
+gnome2root=/opt/gnome/sbin
+    gdmpid=/var/run/gdm.pid
+       gdm=no
+
+test -x ${gnome2root}/gdm && \
+  /sbin/checkproc -p $gdmpid ${gnome2root}/gdm &> /dev/null && gdm=yes
+
+#
+# Handle background:
+#   First kdm/gdm choise, then xdm/user choise and
+#   if no choise is given use the system defaults.
+#
+if test "$kdm" = "yes" -o "$gdm" = "yes"     ; then
+    : # $xsetroot -solid '#738dc6'
+elif test -s ${background}.gz -a -x $xpmroot ; then
+    $xpmroot ${background}.gz
+elif test -s ${background}    -a -x $xpmroot ; then
+    $xpmroot $background
+elif test -x $backprg ; then
+    $backprg
+else
+    $xsetroot -gray
+fi
+
+#
+# Xresources
+#
+if test "$kdm" != "yes" -a "$gdm" != "yes" ; then
+    $xrdb -override -retain <<-EOF
+	#ifdef COLOR
+	*Foreground: black
+	*Background: #cdd2b4
+	#endif
+	#if   (WIDTH < 320)
+	XConsole*geometry:	125x80+0-0
+	#elif (WIDTH < 400)
+	XConsole*geometry:	130x85+0-0
+	#elif (WIDTH < 640)
+	XConsole*geometry:	150x90+0-0
+	#elif (WIDTH < 800)
+	XConsole*geometry:	240x95+0-0
+	#elif (WIDTH < 1024)
+	XConsole*geometry:	300x100+0-0
+	#elif (WIDTH < 1152)
+	XConsole*geometry:	384x110+0-0
+	#elif (WIDTH < 1280)
+	XConsole*geometry:	432x120+0-0
+	#else
+	XConsole*geometry:	480x130+0-0
+	#endif
+	EOF
+fi
+if test "$kdm" = "yes" -o "$gdm" = "yes" ; then
+    $xrdb -override -retain ${LIBDIR}/Xresources
+fi
+
+#
+# Screensaver
+#
+if test -x $xset ; then
+    $xset s on
+    test -n "$SAVESC"       && $xset s $SAVESC
+    test "$USEDPMS" = "yes" && $xset +dpms
+fi
+
+#
+# Set keymap for various displays
+#
+if test -x $xmodmap -o -x $xkbmap ; then
+    if test -z "${DISPLAY%:*}" ; then
+	# local connection
+	if test -s $sysxkbmap -a -x $xkbmap ; then
+	    cat $sysxkbmap | $xkbmap
+	elif test -r $sysmodmap ; then
+	    $xmodmap $sysmodmap
+	fi
+    else
+	# TCP/IP connection (remote or local)
+	if test -s $defxkbmap -a -x $xkbmap ; then
+	    cat $defxkbmap | $xkbmap
+	elif test -r $defmodmap ; then
+	    $xmodmap $defmodmap
+	fi
+	if test -s $hostxkbmap -a -x $xkbmap ; then
+	    cat $hostxkbmap | $xkbmap
+	elif test -r $hostmodmap ; then
+	    $xmodmap $hostmodmap
+	fi
+    fi
+fi
+
+#
+# Compiz
+#
+if test -x $glxinfo -a -x $compiz; then
+    if $glxinfo | grep -q GLX_EXT_texture_from_pixmap ; then
+        if test "$gdm" = "yes" ; then
+            $compiz --sm-disable decoration fade place &
+            if test -x $gwd ; then
+                $gwd --minimal &
+            fi
+        fi
+    fi
+fi
+
+#
+# Only for display :0 we have to set up the xconsole to be
+# sure that the system messages are visible.
+#
+case "$DISPLAY" in
+    :0|:0.0)	;;
+    *)	exit 0	;;
+esac
+
+#
+# No xconsole for kdm/gdm case
+#
+if test "$kdm" = "yes" -o "$gdm" = "yes" ; then
+    exit 0
+fi
+
+#
+# The geometry of xconsole is set in the Xresource file.
+#
+(
+    exec setsid $xconsole -notify -nostdin -verbose -exitOnFail
+) & echo $! > /var/run/xconsole.pid
+
+exit 0

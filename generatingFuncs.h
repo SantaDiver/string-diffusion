@@ -4,6 +4,6 @@
 #include "systemIncludes.h"
 using namespace std;
 
-float generateZeroes(uint x, uint y);
+float generateZeroes(int x, int y);
 
 #endif

@@ -1,0 +1,74 @@
+# Xfs font server configuration file
+#
+# Wed Feb  7 17:41:22 2001  Mike Fabian  <mfabian@suse.de>
+
+# Xfs is the X Window System font server.  It supplies fonts to X Window
+# System display servers.
+# 
+# This font server works for CID-keyed fonts and TrueType fonts as well.
+# 
+# For TrueType fonts it uses the same syntax in the fonts.dir files as
+# the "freetype" modul, it does *not* understand the TTCap syntax
+# extensions to fonts.dir used by the "xtt" module.
+# 
+# To use this fontserver, add
+#
+#     FontPath   "unix/:7100"
+# 
+# into the Section "Files" of /etc/X11/XF86config, above all other
+# FontPath entries. You may also remove or comment out all other
+# FontPath entries if you want to use all fonts via the Fontserver
+#
+# Note that using this fontserver may be a security risk. Don't
+# use it on systems aiming for maximum security.
+# 
+# It may also cause stability problems for the X-Window system.
+# If you encounter frequent crashes, stop using it. 
+
+# if you omit "no-listen = tcp" you can use xfs over the network
+# if you add entries like
+#     FontPath   "tcp/hostname:7100"
+# into /etc/X11/XF86config. Increases the security risk!
+
+no-listen = tcp
+port = 7100
+client-limit = 10
+clone-self = on
+use-syslog = on
+deferglyphs = 16
+
+catalogue = /usr/X11R6/lib/X11/fonts/misc:unscaled,
+	    /usr/X11R6/lib/X11/fonts/75dpi:unscaled,
+	    /usr/X11R6/lib/X11/fonts/100dpi:unscaled,
+	    /usr/X11R6/lib/X11/fonts/japanese:unscaled,
+	    /usr/X11R6/lib/X11/fonts/baekmuk:unscaled,
+	    /usr/X11R6/lib/X11/fonts/Type1,
+	    /usr/X11R6/lib/X11/fonts/URW,
+	    /usr/X11R6/lib/X11/fonts/Speedo,
+	    /usr/X11R6/lib/X11/fonts/CID,
+	    /usr/X11R6/lib/X11/fonts/PEX,
+	    /usr/X11R6/lib/X11/fonts/cyrillic,
+	    /usr/X11R6/lib/X11/fonts/latin2/misc,
+	    /usr/X11R6/lib/X11/fonts/latin2/75dpi,
+	    /usr/X11R6/lib/X11/fonts/latin2/100dpi,
+	    /usr/X11R6/lib/X11/fonts/latin2/Type1,
+	    /usr/X11R6/lib/X11/fonts/latin7/75dpi,
+	    /usr/X11R6/lib/X11/fonts/kwintv,
+	    /usr/X11R6/lib/X11/fonts/truetype,
+	    /usr/X11R6/lib/X11/fonts/uni,
+	    /usr/X11R6/lib/X11/fonts/ucs/misc,
+	    /usr/X11R6/lib/X11/fonts/ucs/75dpi,
+	    /usr/X11R6/lib/X11/fonts/ucs/100dpi,
+	    /usr/X11R6/lib/X11/fonts/hellas/misc,
+	    /usr/X11R6/lib/X11/fonts/hellas/75dpi,
+	    /usr/X11R6/lib/X11/fonts/hellas/100dpi,
+	    /usr/X11R6/lib/X11/fonts/hellas/Type1
+
+# in decipoints
+default-point-size = 120
+default-resolutions = 75,75,100,100
+
+# font cache control, specified in KB
+cache-hi-mark = 2048
+cache-low-mark = 1433
+cache-balance = 70

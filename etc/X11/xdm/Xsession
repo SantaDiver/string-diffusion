@@ -1,0 +1,231 @@
+#!/bin/bash
+#
+# Xsession:	Setup the xsession and start the xsession
+#		script of the user for logon.
+#		
+# Copyright (c) 1998-2000 SuSE GmbH Nuernberg, Germany.
+# Copyright (c) 2005 SUSE LINUX Products GmbH
+# please report bugfixes or comments at http://www.suse.de/feedback.
+#
+# Author: Werner Fink <werner@suse.de>
+#
+
+#
+# What we do if we are signaled or do not leave this
+# script with an appropriate exec call.
+#
+failsafe="xterm -ls -T Failsafe -geometry 80x24+0+0"
+trap "exec $failsafe" EXIT SIGHUP SIGINT SIGPIPE SIGTERM SIGIO
+
+#
+# Some bash (1 and 2) settings to avoid trouble on a
+# failed program call.
+#
+set +e > /dev/null 2>&1
+set +u > /dev/null 2>&1
+set +o posix  > /dev/null 2>&1
+if type shopt > /dev/null 2>&1 ; then
+    shopt -s execfail
+else
+    no_exit_on_failed_exec=1
+fi
+
+#
+# Some system defaults
+#
+    XETCDIR=/etc/X11
+     XDMDIR=$XETCDIR/xdm
+   XINITDIR=$XETCDIR/xinit
+OPENWINHOME=/usr/openwin
+:  ${TMPDIR=/tmp}
+
+export OPENWINHOME TMPDIR
+test -n "$XAUTHORITY" || unset XAUTHORITY
+
+#
+# Save our arguments, maybe some of users call
+# `set' in their profile files.
+#
+argv="$@"
+
+#
+# Handle the NoChange option of wdm 
+#
+/sbin/pidof -s wdm > /dev/null 2>&1
+if test $? -eq 0 ; then
+    if test -z "$argv" ; then
+	if test -s $HOME/.wmrc ; then
+    	    argv=$(<$HOME/.wmrc)	#use wm from previous session
+	fi    
+    else
+	echo "$argv" > $HOME/.wmrc	#save wm
+    fi
+fi    
+
+readonly argv
+
+#
+# Disable graphical login if normal login is disabled
+#
+login=false
+while read sh ; do
+    if test "$sh" = "$SHELL" ; then
+	login=true
+	break
+    fi
+done < /etc/shells
+
+if test "$login" != "true" -o "$SHELL" = "/bin/false" ; then
+    trap "exec xmessage -timeout 10 -button okay:1 -center	\
+	\"${0##*/}: Login for $USER is disabled.\""		\
+	EXIT SIGHUP SIGINT SIGPIPE SIGTERM SIGIO
+    exit 1
+fi
+unset sh login
+
+#
+# Run the X session scripts with the login shell of
+# the user. This function requires bash 2.0 or higher.
+#
+exec_login ()
+{
+    local shell=$SHELL
+    case "$SHELL" in
+    */csh|*/tcsh)		;;
+    */sh|*/bash)		;;
+    */bash2|*/bash1)		;;
+    */pdksh|*/ksh)		;;
+    */zsh|*/ash)		;;
+    */rbash)	shell=/bin/bash ;;
+    */rsh)	shell=/bin/sh	;;
+    */rksh)	shell=/bin/ksh	;;
+    */rzsh)	shell=/bin/zsh	;;
+    *)		shell=/bin/bash	;;
+    esac
+    exec -l -a ${shell##*/} ${shell} -c ${1+"exec $@"}
+}
+
+#
+# Redirect errors to the standard user log files.
+#
+for errfile in	"$HOME/.xsession-errors" \
+		"$TMPDIR/xses-$USER"     \
+		"/tmp/xses-$USER"
+do
+    # GDM seems to handle this its self
+    test -z "$GDMSESSION" || break
+
+    # Once if KDM does handle this its self
+    #test -z "$KDMSESSION" || break
+
+    # Avoid bad symbolic links
+    case "$errfile" in
+	/tmp/*|$TMPDIR/*)
+	    if rm -f -- "$errfile" && errfile="$(mktemp -q "$errfile")" ; then
+		exec > "$errfile" 2>&1
+		break
+	    fi
+	    ;;
+	*)
+	    if test -e "$errfile"  || errfile="$(mktemp -q "$errfile")" ; then
+		exec > "$errfile" 2>&1
+		break
+	    fi
+	    ;;
+    esac
+done
+
+#
+# Check for X11R6 in execution path
+#
+case ":${PATH}:" in
+    *:/usr/X11R6/bin:*) ;;
+    *)  PATH="${PATH}:/usr/X11R6/bin"
+esac
+
+#
+# Window manager provided later by KDM/GDM
+# or read from the system settings
+#
+WINDOWMANAGER=""
+export WINDOWMANAGER
+
+#
+# Handle arguments given by xdm/kdm/gdm.
+#
+forced=no
+set -- $argv
+if test $# -ge 1 ; then
+    case "$1" in
+    failsafe)	exec $failsafe   ;;
+    default)	;;
+    custom)	;;
+    *)		forced=yes
+		WINDOWMANAGER=$1 ;;
+    esac
+    if test $# -ge 2 -a -n "$2" ; then
+	LANG=$2
+	export LANG
+    fi
+fi
+
+#
+# No window manager? Get system default
+#
+if test "$forced" != "yes" ; then
+    . /etc/profile.d/profile.sh
+fi
+
+#
+# Source common code shared between the
+# X session and X init scripts
+#
+. /etc/X11/xinit/xinitrc.common
+
+#
+# Some common user and system files
+#
+session=$HOME/.xsession
+xinitrc=$HOME/.xinitrc
+openwin=$OPENWINHOME/bin/openwin
+sysinit=$XINITDIR/xinitrc
+syssess=$XDMDIR/sys.xsession
+
+#
+# Forced X session type if the user asked for
+# an other session environment.
+#
+if test "$forced" = "yes" ; then
+     unset WINDOW_MANAGER STARTUP
+     test -x $syssess && exec_login "$syssess"
+     exec_login "/bin/bash $syssess"
+fi
+
+# User login X session
+# If the user doesn't have their own xsession, then run
+# system xsession or xinitrc script if they exist
+
+if   test -f $session ; then
+     test -x $session && exec_login "$session"
+     exec_login "/bin/bash $session"
+elif test -f $xinitrc ; then
+     test -x $xinitrc && exec_login "$xinitrc"
+     exec_login "/bin/bash $xinitrc"
+elif test -f $syssess; then
+     test -x $syssess && exec_login "$syssess"
+     exec_login "/bin/bash $syssess"
+elif test -f $sysinit ; then
+     test -x $sysinit && exec_login "$sysinit"
+     exec_login "/bin/bash $sysinit"
+elif test -f $openwin ; then
+     test -x $openwin && exec_login "$openwin"
+     exec_login "/bin/bash $openwin"
+elif test -n "$WINDOWMANAGER" ; then
+     unset WINDOW_MANAGER STARTUP
+     exec_login "$WINDOWMANAGER"
+fi
+
+#
+# Call failsafe
+#
+exit 1

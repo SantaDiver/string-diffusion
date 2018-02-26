@@ -1,0 +1,14 @@
+/dev/md0             /                    ext3       acl,user_xattr        1 1
+/dev/evms/lvm2/system/tmp /tmp                 ext3       acl,user_xattr        1 2
+/dev/evms/lvm2/system/usr /usr                 ext3       acl,user_xattr        1 2
+/dev/evms/lvm2/system/var /var                 ext3       acl,user_xattr        1 2
+/dev/evms/lvm2/system/swap swap                 swap       defaults              0 0
+proc                 /proc                proc       defaults              0 0
+sysfs                /sys                 sysfs      noauto                0 0
+debugfs              /sys/kernel/debug    debugfs    noauto                0 0
+devpts               /dev/pts             devpts     mode=0620,gid=5       0 0
+172.30.1.1:/bgsys         /bgsys          nfs   hard,tcp,intr,timeo=20,retrans=10,async,wsize=8192,rsize=8192 0 0
+#/dev/vgfchome/lvfchome  /fchome           reiserfs   acl,user_xattr,usrquota,grpquota		
+#172.30.2.1:/fctmp         /fctmp          nfs   hard,tcp,intr,timeo=20,retrans=10,async,wsize=8192,rsize=8192 0 0
+/dev/bigfs           /bigfs               gpfs       rw,dev=msuGpfs.cmc.msu.ru:bigfs,ldev=bigfs,noauto 0 0
+/dev/gpfs            /gpfs                gpfs       rw,dev=msuGpfs.cmc.msu.ru:gpfs,ldev=gpfs,noauto 0 0

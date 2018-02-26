@@ -5,28 +5,28 @@
 #include "pieceOfWebFunc.h"
 using namespace std;
 
-void sendToTop(PieceOfWebFunc &piece, uint valueToExchange, uint myRank, uint comm_width);
-void recieveFromBottom(PieceOfWebFunc &piece, uint valueToExchange, uint myRank, uint comm_width);
-void sendToLeft(PieceOfWebFunc &piece, uint valueToExchange, uint myRank);
-void recieveFromRight(PieceOfWebFunc &piece, uint valueToExchange, uint myRank);
-void sendToBottom(PieceOfWebFunc &piece, uint valueToExchange, uint myRank, uint comm_width);
-void recieveFromTop(PieceOfWebFunc &piece, uint valueToExchange, uint myRank, uint comm_width);
-void sendToRight(PieceOfWebFunc &piece, uint valueToExchange, uint myRank);
-void recieveFromLeft(PieceOfWebFunc &piece, uint valueToExchange, uint myRank);
+void sendToTop(PieceOfWebFunc &piece, int valueToExchange, int myRank, int comm_width);
+void recieveFromBottom(PieceOfWebFunc &piece, int valueToExchange, int myRank, int comm_width);
+void sendToLeft(PieceOfWebFunc &piece, int valueToExchange, int myRank);
+void recieveFromRight(PieceOfWebFunc &piece, int valueToExchange, int myRank);
+void sendToBottom(PieceOfWebFunc &piece, int valueToExchange, int myRank, int comm_width);
+void recieveFromTop(PieceOfWebFunc &piece, int valueToExchange, int myRank, int comm_width);
+void sendToRight(PieceOfWebFunc &piece, int valueToExchange, int myRank);
+void recieveFromLeft(PieceOfWebFunc &piece, int valueToExchange, int myRank);
 
-float calcCoef(uint myRank, uint comm_width, uint comm_length);
+float calcCoef(int myRank, int comm_width, int comm_length);
 
-PieceOfWebFunc calcPiece(uint myRank, uint comm_width, uint comm_length,
-    vector<uint> &widthFrags, vector<uint> &lengthFrags, float tau, float coef,
-    float (*gen2D)(uint, uint), float (*genDir)(uint, uint) );
+PieceOfWebFunc calcPiece(int myRank, int comm_width, int comm_length,
+    vector<int> &widthFrags, vector<int> &lengthFrags, float tau, float coef,
+    float (*gen2D)(int, int), float (*genDir)(int, int) );
     
-uint getTopLoad(uint myRank, uint comm_width);
-void sendLoadToTop(PieceOfWebFunc &piece, uint myRank, uint comm_width);
-uint getBottomLoad(uint myRank, uint comm_width);
-void sendLoadToBottom(PieceOfWebFunc &piece, uint myRank, uint comm_width);
-uint getLeftLoad(uint myRank);
-void sendLoadToLeft(PieceOfWebFunc &piece, uint myRank);
-uint getRightLoad(uint myRank);
-void sendLoadToRight(PieceOfWebFunc &piece, uint myRank);
+int getTopLoad(int myRank, int comm_width);
+void sendLoadToTop(PieceOfWebFunc &piece, int myRank, int comm_width);
+int getBottomLoad(int myRank, int comm_width);
+void sendLoadToBottom(PieceOfWebFunc &piece, int myRank, int comm_width);
+int getLeftLoad(int myRank);
+void sendLoadToLeft(PieceOfWebFunc &piece, int myRank);
+int getRightLoad(int myRank);
+void sendLoadToRight(PieceOfWebFunc &piece, int myRank);
 
 #endif

@@ -12,6 +12,4 @@
 #include <vector>
 #include <utility>
 
-typedef unsigned int uint;
-
 #endif

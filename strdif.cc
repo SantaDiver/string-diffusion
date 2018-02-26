@@ -23,7 +23,7 @@ bool vertical_diffusion = true;
 int main(int argc, char** argv)
 {
     MPI_Init(&argc, &argv);
-    
+
     try {
         MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
         MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
@@ -31,80 +31,80 @@ int main(int argc, char** argv)
         float c = 1;
         float tau = 0.4;
         float h = 2; // Menas step in x AND y (where delta x = delta y)
-    
+
         float coef = pow(tau, 2) * pow (c, 2) / pow(h, 2);
-        
-        uint stepsToCount = 100;
-        
-        uint comm_width = 4;
-        uint comm_length = comm_size / comm_width;
-        
+
+        int stepsToCount = 100;
+
+        int comm_width = 4;
+        int comm_length = comm_size / comm_width;
+
         if(comm_width*comm_length != comm_size)
             throw "Wrong comm width!";
-        
-        vector<uint> widthFrags(comm_width, 10);
-        vector<uint> lengthFrags(comm_length, 10);
-        
+
+        vector<int> widthFrags(comm_width, 10);
+        vector<int> lengthFrags(comm_length, 10);
+
         // ------------------ Here may add some changes to frags --------------
         widthFrags[comm_width-1] = 10;
         lengthFrags[comm_length-1] = 10;
         // --------------------------------------------------------------------
-        
-        PieceOfWebFunc piece = calcPiece(myRank, comm_width, comm_length, 
+
+        PieceOfWebFunc piece = calcPiece(myRank, comm_width, comm_length,
             widthFrags, lengthFrags, tau, coef, generateZeroes, generateZeroes);
-        
-        uint fullWidth = 0;
-        uint fullLength = 0;
-        for(uint i=0; i<comm_width; ++i) fullWidth += widthFrags[i];
-        for(uint i=0; i<comm_length; ++i) fullLength += lengthFrags[i];
-        
+
+        int fullWidth = 0;
+        int fullLength = 0;
+        for(int i=0; i<comm_width; ++i) fullWidth += widthFrags[i];
+        for(int i=0; i<comm_length; ++i) fullLength += lengthFrags[i];
+
         vector< vector<float> > asideLeft(stepsToCount, vector<float>(fullLength));
         vector< vector<float> > asideRight(stepsToCount, vector<float>(fullLength));
         vector< vector<float> > asideTop(stepsToCount, vector<float>(fullWidth));
         vector< vector<float> > asideBottom(stepsToCount, vector<float>(fullWidth));
         piece.setAsideVectors(asideLeft, asideRight, asideTop, asideBottom);
-        
+
         double startTime = MPI_Wtime();
-        
+
         float diffCoef = calcCoef(myRank, comm_width, comm_length);
-        
-        for(uint i=0; i<stepsToCount; ++i) {
+
+        for(int i=0; i<stepsToCount; ++i) {
             piece.calcRes();
-            
+
             MPI_Barrier(MPI_COMM_WORLD);
-            
-            uint lengthLoad = piece.getLength();
+
+            int lengthLoad = piece.getLength();
             if (myRank / comm_width != 0 && comm_length > 1)
                 sendLoadToTop(piece, myRank, comm_width);
             if (myRank / comm_width != comm_length-1 && comm_length > 1)
                 sendLoadToBottom(piece, myRank, comm_width);
-                
-            uint widthLoad = piece.getWidth();
-            if (myRank % comm_width != 0 && comm_width > 1) 
+
+            int widthLoad = piece.getWidth();
+            if (myRank % comm_width != 0 && comm_width > 1)
                 sendLoadToLeft(piece, myRank);
             if (myRank % comm_width != comm_width-1 && comm_width > 1)
                 sendLoadToRight(piece, myRank);
-            
-            uint topLoad;  
+
+            int topLoad;
             if (myRank / comm_width != 0 && comm_length > 1)
                 topLoad = getTopLoad(myRank, comm_width);
-            
-            uint bottomLoad;
+
+            int bottomLoad;
             if (myRank / comm_width != comm_length-1 && comm_length > 1)
                 bottomLoad = getBottomLoad(myRank, comm_width);
-            
-            uint leftLoad;
-            if (myRank % comm_width != 0 && comm_width > 1) 
+
+            int leftLoad;
+            if (myRank % comm_width != 0 && comm_width > 1)
                 leftLoad = getLeftLoad(myRank);
-            
-            uint rightLoad;
-            if (myRank % comm_width != comm_width-1 && comm_width > 1)    
+
+            int rightLoad;
+            if (myRank % comm_width != comm_width-1 && comm_width > 1)
                 rightLoad = getRightLoad(myRank);
-            
-            
+
+
             MPI_Barrier(MPI_COMM_WORLD);
-            
-            uint valueToExchange;
+
+            int valueToExchange;
             if (myRank / comm_width != 0 && comm_length > 1) {
                 valueToExchange = diffCoef*abs(lengthLoad-topLoad);
                 if (valueToExchange > 0) {
@@ -119,38 +119,38 @@ int main(int argc, char** argv)
                     else recieveFromBottom(piece, valueToExchange, myRank,comm_width);
                 }
             }
-            
+
             MPI_Barrier(MPI_COMM_WORLD);
-            
+
             if (myRank % comm_width != 0 && comm_width > 1) {
-                uint valueToExchange = diffCoef*abs(leftLoad-widthLoad);
+                int valueToExchange = diffCoef*abs(leftLoad-widthLoad);
                 if (valueToExchange > 0) {
                     if (widthLoad > leftLoad) sendToLeft(piece, valueToExchange, myRank);
                     else recieveFromLeft(piece, valueToExchange, myRank);
                 }
             }
             if (myRank % comm_width != comm_width-1 && comm_width > 1) {
-                uint valueToExchange = diffCoef*abs(rightLoad-widthLoad);
+                int valueToExchange = diffCoef*abs(rightLoad-widthLoad);
                 if (valueToExchange > 0) {
                     if (widthLoad > rightLoad) sendToRight(piece, valueToExchange, myRank);
                     else recieveFromRight(piece, valueToExchange, myRank);
                 }
             }
-            
+
             MPI_Barrier(MPI_COMM_WORLD);
         }
-        
+
         double workTime = MPI_Wtime()-startTime;
-    
+
         double maxtime;
         MPI_Reduce(&workTime, &maxtime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
-    
+
         if (myRank==0 && !debug) cout << maxtime << endl;
-    
+
     } catch (char const *error) {
         cerr<<"Error: " << error << " at rank " << myRank << endl;
     }
-    
+
     MPI_Finalize();
     return 0;
 }
