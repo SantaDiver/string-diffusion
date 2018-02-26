@@ -4,11 +4,11 @@ EXTRAFILES = pieceOfWebFunc.cc generatingFuncs.cc loadExchange.cc
 %: %.cc
 	mpic++ -o $@.exe $< $(EXTRAFILES)
 	
-bg:
+bg: strdif.cc
 	mpicxx -o $@.exe $< $(EXTRAFILES)
 
 smt:
-	mpisubmit.bg -n 128 strdif.exe
+	mpisubmit.bg -n 128 bg.exe
 
 
 report: all
@@ -19,9 +19,7 @@ report: all
 	mpirun -np 16 ./strdif.exe >> ./reportdata;
 	mpirun -np 32 ./strdif.exe >> ./reportdata;
 
-animate:
-	python anim.py
-
 clean:
-	rm -rf strdif.exe *.o
+	rm -rf *.exe *.o
 	rm -rf reportdata
+	rm -rf core* *.out *.err
