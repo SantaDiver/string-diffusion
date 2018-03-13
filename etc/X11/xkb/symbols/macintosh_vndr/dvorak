@@ -1,7 +1,0 @@
-
-partial default alphanumeric_keys 
-xkb_symbols "basic" {
-
-    include "dvorak(basic)"
-    name[Group1]= "Dvorak";
-};

@@ -1,7 +1,0 @@
-partial default alphanumeric_keys
-xkb_symbols "hangul_keys" {
-	include "us"
-	name[Group1]= "Korean";
-	key<K72> { [ Hangul ] };
-	key<K71> { [ Hangul_Hanja ] };
-};
