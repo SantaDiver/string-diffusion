@@ -14,14 +14,10 @@ Made by SNM
 
 using namespace std;
 
-int myRank = 0, comm_size;
-
-bool debug = false;
-bool horizontal_diffusion = true;
-bool vertical_diffusion = true;
-
 int main(int argc, char** argv)
 {
+    int myRank = 0, comm_size;
+
     MPI_Init(&argc, &argv);
 
     try {
@@ -46,12 +42,12 @@ int main(int argc, char** argv)
         vector<int> lengthFrags(comm_length, 100);
 
         // ------------------ Here may add some changes to frags --------------
-        widthFrags[comm_width-1] = 5;
-        lengthFrags[comm_length-1] = 5;
+        // widthFrags[comm_width-1] = 500;
+        // lengthFrags[comm_length-1] = 500;
         // --------------------------------------------------------------------
 
         PieceOfWebFunc piece = calcPiece(myRank, comm_width, comm_length,
-            widthFrags, lengthFrags, tau, coef, generateZeroes, generateZeroes);
+            widthFrags, lengthFrags, tau, coef, generateZeroes, generateXY);
 
         int fullWidth = 0;
         int fullLength = 0;
@@ -64,82 +60,168 @@ int main(int argc, char** argv)
         vector< vector<float> > asideBottom(stepsToCount, vector<float>(fullWidth));
         piece.setAsideVectors(asideLeft, asideRight, asideTop, asideBottom);
 
-        double startTime = MPI_Wtime();
+        int color = myRank / comm_width;
+        MPI_Comm row_comm;
+        MPI_Comm_split(MPI_COMM_WORLD, color, myRank, &row_comm);
 
+        color = myRank % comm_width;
+        MPI_Comm col_comm;
+        MPI_Comm_split(MPI_COMM_WORLD, color, myRank, &col_comm);
+
+        double startTime = MPI_Wtime();
         float diffCoef = calcCoef(myRank, comm_width, comm_length);
-        
         int balanceOnceAt = atoi(argv[3]);
+        bool balanceUsingTime = true;
+
+        double lastBalanceTime = MPI_Wtime();
+        double calcTime;
         for(int i=0; i<stepsToCount; ++i) {
             piece.calcRes();
 
-            MPI_Barrier(MPI_COMM_WORLD);
-            if (i%balanceOnceAt != 0) continue;
-            
-            int lengthLoad = piece.getLength();
+            overheat(myRank, i, stepsToCount, piece);
+
+            if (i%balanceOnceAt != 0 || i==0) continue;
+            calcTime = MPI_Wtime()-lastBalanceTime;
+
+            // for (int jj=0; jj<comm_size; ++jj) {
+            //   if (myRank==jj) cerr << piece.getLength() << " " << piece.getWidth() << "\t";
+            //   if (myRank==jj && jj%comm_width==1) cerr << "\n";
+            //   MPI_Barrier(MPI_COMM_WORLD);
+            // }
+            // if (myRank==0) cerr << "\n";
+
+            float lengthLoad = piece.getLength();
+            float widthLoad = piece.getWidth();
+            if (balanceUsingTime) {
+              double rowTime;
+              MPI_Reduce(&calcTime, &rowTime, 1, MPI_DOUBLE, MPI_MAX, 0, row_comm);
+              MPI_Bcast(&rowTime, 1, MPI_DOUBLE, 0, row_comm);
+              lengthLoad = rowTime;
+
+              double colTime;
+              MPI_Reduce(&calcTime, &colTime, 1, MPI_DOUBLE, MPI_MAX, 0, col_comm);
+              MPI_Bcast(&colTime, 1, MPI_DOUBLE, 0, col_comm);
+              widthLoad = colTime;
+
+              // for (int jj=0;jj<comm_size;++jj) {
+              //   if (myRank==jj) cerr << jj <<"  " << calcTime << " " << rowTime << " " << colTime << "\n";
+              //   MPI_Barrier(MPI_COMM_WORLD);
+              // }
+            }
+
             if (myRank / comm_width != 0 && comm_length > 1)
-                sendLoadToTop(piece, myRank, comm_width);
+                sendLoadToTop(piece, myRank, comm_width, lengthLoad);
             if (myRank / comm_width != comm_length-1 && comm_length > 1)
-                sendLoadToBottom(piece, myRank, comm_width);
+                sendLoadToBottom(piece, myRank, comm_width, lengthLoad);
 
-            int widthLoad = piece.getWidth();
             if (myRank % comm_width != 0 && comm_width > 1)
-                sendLoadToLeft(piece, myRank);
+                sendLoadToLeft(piece, myRank, widthLoad);
             if (myRank % comm_width != comm_width-1 && comm_width > 1)
-                sendLoadToRight(piece, myRank);
+                sendLoadToRight(piece, myRank, widthLoad);
 
-            int topLoad;
+            float topLoad;
             if (myRank / comm_width != 0 && comm_length > 1)
                 topLoad = getTopLoad(myRank, comm_width);
 
-            int bottomLoad;
+            float bottomLoad;
             if (myRank / comm_width != comm_length-1 && comm_length > 1)
                 bottomLoad = getBottomLoad(myRank, comm_width);
 
-            int leftLoad;
+            float leftLoad;
             if (myRank % comm_width != 0 && comm_width > 1)
                 leftLoad = getLeftLoad(myRank);
 
-            int rightLoad;
+            float rightLoad;
             if (myRank % comm_width != comm_width-1 && comm_width > 1)
                 rightLoad = getRightLoad(myRank);
 
-
-            MPI_Barrier(MPI_COMM_WORLD);
-
             int valueToExchange;
+            // Vertical
             if (myRank / comm_width != 0 && comm_length > 1) {
-                valueToExchange = diffCoef*abs(lengthLoad-topLoad);
+                valueToExchange = static_cast<int>(diffCoef*fabs(lengthLoad-topLoad));
+
+                if (balanceUsingTime) {
+                  double val =  diffCoef*fabs(lengthLoad-topLoad) / max(lengthLoad, topLoad);
+                  val = recalc_coef(val);
+
+                  float myvalue = piece.getLength();
+                  sendLoadToTop(piece, myRank, comm_width, myvalue);
+                  float partnervalue = getTopLoad(myRank, comm_width);
+
+                  if (lengthLoad > topLoad) valueToExchange = static_cast<int>(val*myvalue);
+                  else valueToExchange = static_cast<int>(val*partnervalue);
+                }
+
                 if (valueToExchange > 0) {
                     if (lengthLoad > topLoad) sendToTop(piece, valueToExchange, myRank, comm_width);
                     else recieveFromTop(piece, valueToExchange, myRank, comm_width);
                 }
             }
             if (myRank / comm_width != comm_length-1 && comm_length > 1) {
-                valueToExchange = diffCoef*abs(lengthLoad-bottomLoad);
+                valueToExchange = static_cast<int>(diffCoef*fabs(lengthLoad-bottomLoad));
+
+                if (balanceUsingTime) {
+                  double val = diffCoef*fabs(lengthLoad-bottomLoad) / max(lengthLoad, bottomLoad);
+                  val = recalc_coef(val);
+
+                  float myvalue = piece.getLength();
+                  sendLoadToBottom(piece, myRank, comm_width, myvalue);
+                  float partnervalue = getBottomLoad(myRank, comm_width);
+
+                  if (lengthLoad > bottomLoad) valueToExchange = static_cast<int>(val*myvalue);
+                  else valueToExchange = static_cast<int>(val*partnervalue);
+                }
+
                 if (valueToExchange > 0) {
                     if (lengthLoad > bottomLoad) sendToBottom(piece, valueToExchange, myRank, comm_width);
                     else recieveFromBottom(piece, valueToExchange, myRank,comm_width);
                 }
             }
 
-            MPI_Barrier(MPI_COMM_WORLD);
-
+            // Horizontal
             if (myRank % comm_width != 0 && comm_width > 1) {
-                int valueToExchange = diffCoef*abs(leftLoad-widthLoad);
+                int valueToExchange = static_cast<int>(diffCoef*fabs(leftLoad-widthLoad));
+
+                if (balanceUsingTime) {
+                  double val = diffCoef*fabs(leftLoad-widthLoad) / max(widthLoad, leftLoad);
+                  val = recalc_coef(val);
+
+                  float myvalue = piece.getWidth();
+                  sendLoadToLeft(piece, myRank, myvalue);
+                  float partnervalue = getLeftLoad(myRank);
+
+                  if (widthLoad > leftLoad) valueToExchange = static_cast<int>(val*myvalue);
+                  else valueToExchange = static_cast<int>(val*partnervalue);
+                }
+
                 if (valueToExchange > 0) {
                     if (widthLoad > leftLoad) sendToLeft(piece, valueToExchange, myRank);
                     else recieveFromLeft(piece, valueToExchange, myRank);
                 }
             }
             if (myRank % comm_width != comm_width-1 && comm_width > 1) {
-                int valueToExchange = diffCoef*abs(rightLoad-widthLoad);
+                int valueToExchange = static_cast<int>(diffCoef*fabs(rightLoad-widthLoad));
+
+                if (balanceUsingTime) {
+                  double val = diffCoef*fabs(rightLoad-widthLoad) / max(widthLoad, rightLoad);
+                  val = recalc_coef(val);
+
+                  float myvalue = piece.getWidth();
+                  sendLoadToRight(piece, myRank, myvalue);
+                  float partnervalue = getRightLoad(myRank);
+
+                  if (widthLoad > rightLoad) valueToExchange = static_cast<int>(val*myvalue);
+                  else valueToExchange = static_cast<int>(val*partnervalue);
+                }
+
                 if (valueToExchange > 0) {
                     if (widthLoad > rightLoad) sendToRight(piece, valueToExchange, myRank);
                     else recieveFromRight(piece, valueToExchange, myRank);
                 }
             }
 
-            MPI_Barrier(MPI_COMM_WORLD);
+            lastBalanceTime = MPI_Wtime();
+            // MPI_Barrier(MPI_COMM_WORLD);
         }
 
         double workTime = MPI_Wtime()-startTime;
@@ -147,7 +229,7 @@ int main(int argc, char** argv)
         double maxtime;
         MPI_Reduce(&workTime, &maxtime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 
-        if (myRank==0 && !debug) cout << balanceOnceAt << " " << maxtime << endl;
+        if (myRank==0) cout << balanceOnceAt << "\t" << maxtime << endl;
 
     } catch (char const *error) {
         cerr<<"Error: " << error << " at rank " << myRank << endl;

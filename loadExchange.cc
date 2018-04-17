@@ -3,10 +3,10 @@
 void sendToTop(PieceOfWebFunc &piece, int valueToExchange, int myRank, int comm_width) {
     MPI_Request request;
     int width = piece.getWidth();
-    
-    pair< vector<vector<float> >, vector< vector<float> > > pair = 
+
+    pair< vector<vector<float> >, vector< vector<float> > > pair =
         piece.cutPieceFromTop(valueToExchange);
-    
+
     for(int k=0; k<width; ++k) {
         MPI_Isend (&pair.first[k][0], valueToExchange, MPI_FLOAT,
             myRank - comm_width, k, MPI_COMM_WORLD, &request);
@@ -18,29 +18,29 @@ void sendToTop(PieceOfWebFunc &piece, int valueToExchange, int myRank, int comm_
 void recieveFromBottom(PieceOfWebFunc &piece, int valueToExchange, int myRank, int comm_width) {
     MPI_Request request;
     int width = piece.getWidth();
-            
+
     vector< vector<float> > pieceOfRes(width, vector<float>(valueToExchange));
     for(int k=0; k<width; ++k) {
         MPI_Recv (&pieceOfRes[k][0], valueToExchange, MPI_FLOAT, myRank + comm_width,
             k, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
-    
+
     vector< vector<float> > pieceOfPrev(width, vector<float>(valueToExchange));
     for(int k=0; k<width; ++k) {
         MPI_Recv (&pieceOfPrev[k][0], valueToExchange, MPI_FLOAT, myRank + comm_width,
             k+width, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
-    
+
     piece.addPieceToBottom(pieceOfRes, pieceOfPrev);
 }
 
 void sendToLeft(PieceOfWebFunc &piece, int valueToExchange, int myRank) {
     MPI_Request request;
     int length = piece.getLength();
-    
-    pair< vector<vector<float> >, vector< vector<float> > > pair = 
+
+    pair< vector<vector<float> >, vector< vector<float> > > pair =
         piece.cutPieceFromLeft(valueToExchange);
-    
+
     for(int k=0; k<valueToExchange; ++k) {
         MPI_Isend (&pair.first[k][0], length, MPI_FLOAT,
             myRank - 1, k, MPI_COMM_WORLD, &request);
@@ -52,29 +52,29 @@ void sendToLeft(PieceOfWebFunc &piece, int valueToExchange, int myRank) {
 void recieveFromRight(PieceOfWebFunc &piece, int valueToExchange, int myRank) {
     MPI_Request request;
     int length = piece.getLength();
-    
+
     vector< vector<float> > pieceOfRes(valueToExchange, vector<float>(length));
     for(int k=0; k<valueToExchange; ++k) {
         MPI_Recv (&pieceOfRes[k][0], length, MPI_FLOAT, myRank + 1,
             k, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
-    
+
     vector< vector<float> > pieceOfPrev(valueToExchange, vector<float>(length));
     for(int k=0; k<valueToExchange; ++k) {
         MPI_Recv (&pieceOfPrev[k][0], length, MPI_FLOAT, myRank + 1,
             k+valueToExchange, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
-    
+
     piece.addPieceToRight(pieceOfRes, pieceOfPrev);
 }
 
 void sendToBottom(PieceOfWebFunc &piece, int valueToExchange, int myRank, int comm_width) {
     MPI_Request request;
     int width = piece.getWidth();
-    
-    pair< vector<vector<float> >, vector< vector<float> > > pair = 
+
+    pair< vector<vector<float> >, vector< vector<float> > > pair =
         piece.cutPieceFromBottom(valueToExchange);
-    
+
     for(int k=0; k<width; ++k) {
         MPI_Isend (&pair.first[k][0], valueToExchange, MPI_FLOAT,
             myRank + comm_width, k, MPI_COMM_WORLD, &request);
@@ -86,29 +86,29 @@ void sendToBottom(PieceOfWebFunc &piece, int valueToExchange, int myRank, int co
 void recieveFromTop(PieceOfWebFunc &piece, int valueToExchange, int myRank, int comm_width) {
     MPI_Request request;
     int width = piece.getWidth();
-            
+
     vector< vector<float> > pieceOfRes(width, vector<float>(valueToExchange));
     for(int k=0; k<width; ++k) {
         MPI_Recv (&pieceOfRes[k][0], valueToExchange, MPI_FLOAT, myRank - comm_width,
             k, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
-    
+
     vector< vector<float> > pieceOfPrev(width, vector<float>(valueToExchange));
     for(int k=0; k<width; ++k) {
         MPI_Recv (&pieceOfPrev[k][0], valueToExchange, MPI_FLOAT, myRank - comm_width,
             k+width, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
-    
+
     piece.addPieceToTop(pieceOfRes, pieceOfPrev);
 }
 
 void sendToRight(PieceOfWebFunc &piece, int valueToExchange, int myRank) {
     MPI_Request request;
     int length = piece.getLength();
-    
-    pair< vector<vector<float> >, vector< vector<float> > > pair = 
+
+    pair< vector<vector<float> >, vector< vector<float> > > pair =
         piece.cutPieceFromRight(valueToExchange);
-    
+
     for(int k=0; k<valueToExchange; ++k) {
         MPI_Isend (&pair.first[k][0], length, MPI_FLOAT,
             myRank + 1, k, MPI_COMM_WORLD, &request);
@@ -120,19 +120,19 @@ void sendToRight(PieceOfWebFunc &piece, int valueToExchange, int myRank) {
 void recieveFromLeft(PieceOfWebFunc &piece, int valueToExchange, int myRank) {
     MPI_Request request;
     int length = piece.getLength();
-    
+
     vector< vector<float> > pieceOfRes(valueToExchange, vector<float>(length));
     for(int k=0; k<valueToExchange; ++k) {
         MPI_Recv (&pieceOfRes[k][0], length, MPI_FLOAT, myRank - 1,
             k, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
-    
+
     vector< vector<float> > pieceOfPrev(valueToExchange, vector<float>(length));
     for(int k=0; k<valueToExchange; ++k) {
         MPI_Recv (&pieceOfPrev[k][0], length, MPI_FLOAT, myRank - 1,
             k+valueToExchange, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
-    
+
     piece.addPieceToLeft(pieceOfRes, pieceOfPrev);
 }
 
@@ -143,85 +143,94 @@ float calcCoef(int myRank, int comm_width, int comm_length) {
 PieceOfWebFunc calcPiece(int myRank, int comm_width, int comm_length,
     vector<int> &widthFrags, vector<int> &lengthFrags, float tau, float coef,
     float (*gen2D)(int, int), float (*genDir)(int, int) ) {
-    
+
     int x = myRank % comm_width;
     int y = myRank / comm_width;
-    
+
     int pieceWidth = widthFrags[x];
     int pieceLength = lengthFrags[y];
-    
+
     vector< vector<float> > prev(pieceWidth, vector<float>(pieceLength));
     vector< vector<float> > prev_prev(pieceWidth, vector<float>(pieceLength));
-    
+
     int width_offset = 0;
     for(int i=0; i<x; ++i) width_offset += widthFrags[i];
     int length_offset = 0;
     for(int i=0; i<y; ++i) length_offset += lengthFrags[i];
-    
+
     for(int i=0; i<pieceWidth; ++i) {
         for(int j=0; j<pieceLength; ++j) {
             prev_prev[i][j] = gen2D(i+width_offset, j+length_offset);
             prev[i][j] = genDir(i+width_offset, j+length_offset) * tau + prev_prev[i][j];
         }
     }
-    
+
     return PieceOfWebFunc(coef, prev_prev, prev, myRank, comm_width, comm_length);
 }
 
-int getTopLoad(int myRank, int comm_width) {
-    int topLoad;
-    MPI_Recv (&topLoad, 1 , MPI_INT, myRank-comm_width, 0, 
+float getTopLoad(int myRank, int comm_width) {
+    float topLoad;
+    MPI_Recv (&topLoad, 1 , MPI_FLOAT, myRank-comm_width, 0,
         MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        
+
     return topLoad;
 }
 
-void sendLoadToTop(PieceOfWebFunc &piece, int myRank, int comm_width) {
+void sendLoadToTop(PieceOfWebFunc &piece, int myRank, int comm_width, float load) {
     MPI_Request request;
-    int load = piece.getLength();
-    MPI_Isend (&load, 1, MPI_INT, myRank-comm_width, 0, MPI_COMM_WORLD, &request);
+    // int load = piece.getLength();
+    MPI_Isend (&load, 1, MPI_FLOAT, myRank-comm_width, 0, MPI_COMM_WORLD, &request);
 }
 
-int getBottomLoad(int myRank, int comm_width) {
-    int bottomLoad;
-    MPI_Recv (&bottomLoad, 1 , MPI_INT, myRank+comm_width, 0, 
-        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        
+float getBottomLoad(int myRank, int comm_width) {
+    float bottomLoad;
+    MPI_Recv (&bottomLoad, 1 , MPI_FLOAT, myRank+comm_width, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
     return bottomLoad;
 }
 
-void sendLoadToBottom(PieceOfWebFunc &piece, int myRank, int comm_width) {
+void sendLoadToBottom(PieceOfWebFunc &piece, int myRank, int comm_width, float load) {
     MPI_Request request;
-    int load = piece.getLength();
-    MPI_Isend (&load, 1, MPI_INT, myRank+comm_width, 0, MPI_COMM_WORLD, &request);
+    // int load = piece.getLength();
+    MPI_Isend (&load, 1, MPI_FLOAT, myRank+comm_width, 0, MPI_COMM_WORLD, &request);
 }
 
-int getLeftLoad(int myRank) {
-    int leftLoad;
-    MPI_Recv (&leftLoad, 1 , MPI_INT, myRank-1, 0, 
-        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        
+float getLeftLoad(int myRank) {
+    float leftLoad;
+    MPI_Recv (&leftLoad, 1 , MPI_FLOAT, myRank-1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
     return leftLoad;
 }
 
-void sendLoadToLeft(PieceOfWebFunc &piece, int myRank) {
+void sendLoadToLeft(PieceOfWebFunc &piece, int myRank, float load) {
     MPI_Request request;
-    int load = piece.getWidth();
-    MPI_Isend (&load, 1, MPI_INT, myRank-1, 0, MPI_COMM_WORLD, &request);
+    // int load = piece.getWidth();
+    MPI_Isend (&load, 1, MPI_FLOAT, myRank-1, 0, MPI_COMM_WORLD, &request);
 }
 
-int getRightLoad(int myRank) {
-    int rightLoad;
-    MPI_Recv (&rightLoad, 1 , MPI_INT, myRank+1, 0, 
-        MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        
+float getRightLoad(int myRank) {
+    float rightLoad;
+    MPI_Recv (&rightLoad, 1 , MPI_FLOAT, myRank+1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
     return rightLoad;
 }
 
-void sendLoadToRight(PieceOfWebFunc &piece, int myRank) {
+void sendLoadToRight(PieceOfWebFunc &piece, int myRank, float load) {
     MPI_Request request;
-    int load = piece.getWidth();
-    MPI_Isend (&load, 1, MPI_INT, myRank+1, 0, MPI_COMM_WORLD, &request);
+    // int load = piece.getWidth();
+    MPI_Isend (&load, 1, MPI_FLOAT, myRank+1, 0, MPI_COMM_WORLD, &request);
 }
 
+double recalc_coef(double coef) {
+  return pow(coef, 2);
+}
 
+void overheat(int rank, int i, int stepsToCount, PieceOfWebFunc &piece) {
+  if (rank==0) {
+    int a;
+    for (int ij=0; ij<200; ++ij)
+      for (int ii=0; ii<piece.getLength(); ++ii)
+        for (int jj=0; jj<piece.getWidth(); ++jj)
+          a=ii*jj;
+  }
+}

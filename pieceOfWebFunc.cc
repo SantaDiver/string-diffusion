@@ -1,9 +1,9 @@
 #include "pieceOfWebFunc.h"
 
-PieceOfWebFunc::PieceOfWebFunc(float coef, vector< vector<float> > &t0, 
+PieceOfWebFunc::PieceOfWebFunc(float coef, vector< vector<float> > &t0,
     vector< vector<float> > &t1, int rank, int comm_width, int comm_length) :
 
-    _coef(coef), _prev(t0), _res(t1), _rank(rank), _comm_width(comm_width), 
+    _coef(coef), _prev(t0), _res(t1), _rank(rank), _comm_width(comm_width),
     _comm_length(comm_length), _stepsCounter(0)
 
 {
@@ -45,7 +45,7 @@ void PieceOfWebFunc::calcRes()
             &request
         );
     }
-    
+
     if(_rank / _comm_width != 0) {
         vector<float> topPoints(_width);
         for (int i=0; i<_width; ++i)
@@ -62,7 +62,7 @@ void PieceOfWebFunc::calcRes()
             &request
         );
     }
-    
+
     if(_rank / _comm_width != _comm_length-1) {
         vector<float> bottomPoints(_width);
         for (int i=0; i<_width; ++i)
@@ -85,7 +85,7 @@ void PieceOfWebFunc::calcRes()
     _res.resize(_width);
     for(int i=0; i<_res.size(); ++i)
         _res[i].resize(_length);
-    
+
     vector<float> leftPoints(_length);
     if(_rank % _comm_width != 0) {
         MPI_Recv
@@ -102,7 +102,7 @@ void PieceOfWebFunc::calcRes()
     else {
         leftPoints = _asideLeft[_stepsCounter];
     }
-    
+
     vector<float> rightPoints(_length);
     if(_rank % _comm_width != _comm_width-1) {
         MPI_Recv
@@ -119,7 +119,7 @@ void PieceOfWebFunc::calcRes()
     else {
         rightPoints = _asideRight[_stepsCounter];
     }
-    
+
     vector<float> topPoints(_width);
     if(_rank / _comm_width != 0) {
         MPI_Recv
@@ -136,7 +136,7 @@ void PieceOfWebFunc::calcRes()
     else {
         topPoints = _asideTop[_stepsCounter];
     }
-    
+
     vector<float> bottomPoints(_width);
     if(_rank / _comm_width != _comm_length-1) {
         MPI_Recv
@@ -153,23 +153,24 @@ void PieceOfWebFunc::calcRes()
     else {
         bottomPoints = _asideBottom[_stepsCounter];
     }
-    
-    _res[0][0] = 2*_prev[0][0] - _prev_prev[0][0] + 
+
+    _res[0][0] = 2*_prev[0][0] - _prev_prev[0][0] +
         _coef*(leftPoints[0] - 2*_prev[0][0] + _prev[1][0] +
                 topPoints[0] - 2*_prev[0][0] + _prev[0][1]);
-    
+
     for(int i=1; i<_width-1; ++i) {
         _res[i][0] = 2*_prev[i][0] - _prev_prev[i][0] +
             _coef*(_prev[i-1][0] - 2*_prev[i][0] + _prev[i+1][0] +
                 topPoints[i] - 2*_prev[i][0] + _prev[i][1]);
     }
-    
+
     for(int j=1; j<_length-1; ++j) {
         _res[0][j] = 2*_prev[0][j] - _prev_prev[0][j] +
             _coef*(leftPoints[j] - 2*_prev[0][j] + _prev[1][j] +
                 _prev[0][j-1] - 2*_prev[0][j] + _prev[0][j+1]);
     }
 
+    // TODO: Динамическая нагрузка на внутренние узлы сетки
     for(int i=1; i<_width-1; ++i) {
         for(int j=1; j<_length-1; ++j) {
             _res[i][j] = 2*_prev[i][j] - _prev_prev[i][j] +
@@ -177,34 +178,34 @@ void PieceOfWebFunc::calcRes()
                 + _prev[i][j-1] - 2*_prev[i][j] + _prev[i][j+1]);
         }
     }
-    
+
     _res[0][_length-1] = 2*_prev[0][_length-1] - _prev_prev[0][_length-1] +
         _coef*(leftPoints[_length-1] - 2*_prev[0][_length-1] + _prev[1][_length-1] +
             _prev[0][_length-2] - 2*_prev[0][_length-1] + bottomPoints[0]);
-    
+
     for(int i=1; i<_width-1; ++i) {
         _res[i][_length-1] = 2*_prev[i][_length-1] - _prev_prev[i][_length-1] +
             _coef*(_prev[i-1][_length-1] - 2*_prev[i][_length-1] + _prev[i+1][_length-1] +
                 _prev[i][_length-2] - 2*_prev[i][_length-1] + topPoints[i]);
     }
-    
+
     _res[_width-1][0] = 2*_prev[_width-1][0] - _prev_prev[_width-1][0] +
         _coef*(_prev[_width-2][0] - 2*_prev[_width-1][0] + rightPoints[0] +
             topPoints[_width-1] - 2*_prev[_width-1][0] + _prev[_width-1][1]);
-    
+
     for(int j=1; j<_length-1; ++j) {
         _res[_width-1][j] = 2*_prev[_width-1][j] - _prev_prev[_width-1][j] +
             _coef*(_prev[_width-2][j] - 2*_prev[_width-1][j] + rightPoints[j] +
                 _prev[_width-1][j-1] - 2*_prev[_width-1][j] + _prev[_width-1][j+1]);
     }
-    
+
     _res[_width-1][_length-1] = 2*_prev[_width-1][_length-1] - _prev_prev[_width-1][_length-1] +
         _coef*(_prev[_width-2][_length-1] - 2*_prev[_width-1][_length-1] + rightPoints[_length-1] +
             _prev[_width-1][_length-2] - 2*_prev[_width-1][_length-1] + bottomPoints[_width-1]);
 
     ++_stepsCounter;
 }
-void PieceOfWebFunc::setAsideVectors(vector< vector<float> > &asideLeft, 
+void PieceOfWebFunc::setAsideVectors(vector< vector<float> > &asideLeft,
         vector< vector<float> > &asideRight, vector< vector<float> > &asideTop,
         vector< vector<float> > &asideBottom)
 
@@ -235,7 +236,7 @@ pair< vector< vector<float> >, vector< vector<float> > > PieceOfWebFunc::cutPiec
 
      vector< vector<float> > vecPrevToReturn( _prev.end()-l, _prev.end());
     _prev.erase( _prev.end()-l, _prev.end());
-    
+
     _width = _res.size();
 
     return pair< vector< vector<float> >, vector< vector<float> > > (vecResToReturn, vecPrevToReturn);
@@ -248,15 +249,15 @@ pair< vector< vector<float> >, vector< vector<float> > > PieceOfWebFunc::cutPiec
         vecResToReturn[j] = vector<float>(_res[j].begin(), _res[j].begin()+l);
         _res[j].erase(_res[j].begin(), _res[j].begin()+l);
     }
-    
+
     vector< vector<float> > vecPrevToReturn(_width, vector<float>(l));
     for(int j=0; j<_width; ++j) {
         vecPrevToReturn[j] = vector<float>(_prev[j].begin(), _prev[j].begin()+l);
         _prev[j].erase(_prev[j].begin(), _prev[j].begin()+l);
     }
-    
+
     _length = _res[0].size();
-    
+
     return pair< vector< vector<float> >, vector< vector<float> > > (vecResToReturn, vecPrevToReturn);
 }
 
@@ -267,19 +268,19 @@ pair< vector< vector<float> >, vector< vector<float> > > PieceOfWebFunc::cutPiec
         vecResToReturn[j] = vector<float>(_res[j].end()-l, _res[j].end());
         _res[j].erase(_res[j].end()-l, _res[j].end());
     }
-    
+
     vector< vector<float> > vecPrevToReturn(_width, vector<float>(l));
     for(int j=0; j<_width; ++j) {
         vecPrevToReturn[j] = vector<float>(_prev[j].end()-l, _prev[j].end());
         _prev[j].erase(_prev[j].end()-l, _prev[j].end());
     }
-    
+
     _length = _res[0].size();
-    
+
     return pair< vector< vector<float> >, vector< vector<float> > > (vecResToReturn, vecPrevToReturn);
 }
 
-void PieceOfWebFunc::addPieceToLeft(vector< vector<float> > pieceOfRes, 
+void PieceOfWebFunc::addPieceToLeft(vector< vector<float> > pieceOfRes,
     vector< vector<float> > pieceOfPrev)
 {
     _res.insert(_res.begin(), pieceOfRes.begin(), pieceOfRes.end());
@@ -288,7 +289,7 @@ void PieceOfWebFunc::addPieceToLeft(vector< vector<float> > pieceOfRes,
     _width = _res.size();
 }
 
-void PieceOfWebFunc::addPieceToRight(vector< vector<float> > pieceOfRes, 
+void PieceOfWebFunc::addPieceToRight(vector< vector<float> > pieceOfRes,
     vector< vector<float> > pieceOfPrev)
 {
     _res.insert(_res.end(), pieceOfRes.begin(), pieceOfRes.end());
@@ -297,23 +298,23 @@ void PieceOfWebFunc::addPieceToRight(vector< vector<float> > pieceOfRes,
     _width = _res.size();
 }
 
-void PieceOfWebFunc::addPieceToTop(vector< vector<float> > pieceOfRes, 
+void PieceOfWebFunc::addPieceToTop(vector< vector<float> > pieceOfRes,
     vector< vector<float> > pieceOfPrev)
 {
     for(int j=0; j<_width; ++j) {
         _res[j].insert(_res[j].begin(), pieceOfRes[j].begin(), pieceOfRes[j].end());
-        _prev[j].insert(_prev[j].begin(), pieceOfPrev[j].begin(), pieceOfPrev[j].end());    
+        _prev[j].insert(_prev[j].begin(), pieceOfPrev[j].begin(), pieceOfPrev[j].end());
     }
 
     _length = _res[0].size();
 }
 
-void PieceOfWebFunc::addPieceToBottom(vector< vector<float> > pieceOfRes, 
+void PieceOfWebFunc::addPieceToBottom(vector< vector<float> > pieceOfRes,
     vector< vector<float> > pieceOfPrev)
 {
     for(int j=0; j<_width; ++j) {
         _res[j].insert(_res[j].begin(), pieceOfRes[j].begin(), pieceOfRes[j].end());
-        _prev[j].insert(_prev[j].begin(), pieceOfPrev[j].begin(), pieceOfPrev[j].end());    
+        _prev[j].insert(_prev[j].begin(), pieceOfPrev[j].begin(), pieceOfPrev[j].end());
     }
 
     _length = _res[0].size();

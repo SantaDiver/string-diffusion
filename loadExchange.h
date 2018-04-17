@@ -19,14 +19,17 @@ float calcCoef(int myRank, int comm_width, int comm_length);
 PieceOfWebFunc calcPiece(int myRank, int comm_width, int comm_length,
     vector<int> &widthFrags, vector<int> &lengthFrags, float tau, float coef,
     float (*gen2D)(int, int), float (*genDir)(int, int) );
-    
-int getTopLoad(int myRank, int comm_width);
-void sendLoadToTop(PieceOfWebFunc &piece, int myRank, int comm_width);
-int getBottomLoad(int myRank, int comm_width);
-void sendLoadToBottom(PieceOfWebFunc &piece, int myRank, int comm_width);
-int getLeftLoad(int myRank);
-void sendLoadToLeft(PieceOfWebFunc &piece, int myRank);
-int getRightLoad(int myRank);
-void sendLoadToRight(PieceOfWebFunc &piece, int myRank);
+
+float getTopLoad(int myRank, int comm_width);
+void sendLoadToTop(PieceOfWebFunc &piece, int myRank, int comm_width, float load);
+float getBottomLoad(int myRank, int comm_width);
+void sendLoadToBottom(PieceOfWebFunc &piece, int myRank, int comm_width, float load);
+float getLeftLoad(int myRank);
+void sendLoadToLeft(PieceOfWebFunc &piece, int myRank, float load);
+float getRightLoad(int myRank);
+void sendLoadToRight(PieceOfWebFunc &piece, int myRank, float load);
+
+double recalc_coef(double coef);
+void overheat(int rank, int i, int stepsToCount, PieceOfWebFunc &piece);
 
 #endif
