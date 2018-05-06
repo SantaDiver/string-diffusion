@@ -221,16 +221,30 @@ void sendLoadToRight(PieceOfWebFunc &piece, int myRank, float load) {
     MPI_Isend (&load, 1, MPI_FLOAT, myRank+1, 0, MPI_COMM_WORLD, &request);
 }
 
-double recalc_coef(double coef) {
-  return pow(coef, 2);
+double recalc_coef(double coef, double power) {
+  return pow(coef, power);
 }
 
-void overheat(int rank, int i, int stepsToCount, PieceOfWebFunc &piece) {
+double overheat(int rank, int i, int stepsToCount, PieceOfWebFunc &piece, double calcTime, double upTo) {
+  double overheatStartTime = MPI_Wtime();
+  // rank==4*8+4
   if (rank==0) {
-    int a;
-    for (int ij=0; ij<200; ++ij)
-      for (int ii=0; ii<piece.getLength(); ++ii)
-        for (int jj=0; jj<piece.getWidth(); ++jj)
-          a=ii*jj;
+    double startTime=MPI_Wtime();
+    double timeToSleep;
+
+    // if (i <= stepsToCount/3){
+    //   timeToSleep = upTo*calcTime * 3*i/stepsToCount;
+    // } else if (i <= 2*stepsToCount/3) {
+    //   timeToSleep = upTo*calcTime;
+    // } else {
+    //   timeToSleep = upTo*calcTime * 3*(stepsToCount-i)/stepsToCount;
+    // }
+    //
+    timeToSleep=upTo*calcTime;
+
+    while (1)
+      if (MPI_Wtime()-startTime > timeToSleep) break;
   }
+
+  return MPI_Wtime() - overheatStartTime;
 }

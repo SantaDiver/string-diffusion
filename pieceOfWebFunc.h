@@ -37,9 +37,9 @@ public:
         int rank, int comm_width, int comm_length
     );
 
-    void calcRes();
+    double calcRes();
 
-    void setAsideVectors(vector<vector< float> > &asideLeft, 
+    void setAsideVectors(vector<vector< float> > &asideLeft,
         vector< vector<float> > &asideRight, vector< vector<float> > &asideTop,
         vector< vector<float> > &asideBottom);
 

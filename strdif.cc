@@ -16,6 +16,8 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
+    if (argc<6) throw invalid_argument("too few parameters");
+
     int myRank = 0, comm_size;
 
     MPI_Init(&argc, &argv);
@@ -38,8 +40,8 @@ int main(int argc, char** argv)
         if(comm_width*comm_length != comm_size)
             throw "Wrong comm width!";
 
-        vector<int> widthFrags(comm_width, 100);
-        vector<int> lengthFrags(comm_length, 100);
+        vector<int> widthFrags(comm_width, 30);
+        vector<int> lengthFrags(comm_length, 30);
 
         // ------------------ Here may add some changes to frags --------------
         // widthFrags[comm_width-1] = 500;
@@ -72,16 +74,20 @@ int main(int argc, char** argv)
         float diffCoef = calcCoef(myRank, comm_width, comm_length);
         int balanceOnceAt = atoi(argv[3]);
         bool balanceUsingTime = true;
+        double upTo = atof(argv[4]);
+        double diffPower = atof(argv[5]);
 
         double lastBalanceTime = MPI_Wtime();
-        double calcTime;
-        for(int i=0; i<stepsToCount; ++i) {
-            piece.calcRes();
+        double calcTime=0;
+        double s=0;
 
-            overheat(myRank, i, stepsToCount, piece);
+        for(int i=1; i<=stepsToCount; ++i) {
+            s = piece.calcRes();
+            calcTime += s;
+            calcTime += overheat(myRank, i, stepsToCount, piece, s, upTo);
 
-            if (i%balanceOnceAt != 0 || i==0) continue;
-            calcTime = MPI_Wtime()-lastBalanceTime;
+            if (i%balanceOnceAt != 0) continue;
+            // calcTime = MPI_Wtime()-lastBalanceTime;
 
             // for (int jj=0; jj<comm_size; ++jj) {
             //   if (myRank==jj) cerr << piece.getLength() << " " << piece.getWidth() << "\t";
@@ -142,7 +148,7 @@ int main(int argc, char** argv)
 
                 if (balanceUsingTime) {
                   double val =  diffCoef*fabs(lengthLoad-topLoad) / max(lengthLoad, topLoad);
-                  val = recalc_coef(val);
+                  val = recalc_coef(val, diffPower);
 
                   float myvalue = piece.getLength();
                   sendLoadToTop(piece, myRank, comm_width, myvalue);
@@ -162,7 +168,7 @@ int main(int argc, char** argv)
 
                 if (balanceUsingTime) {
                   double val = diffCoef*fabs(lengthLoad-bottomLoad) / max(lengthLoad, bottomLoad);
-                  val = recalc_coef(val);
+                  val = recalc_coef(val, diffPower);
 
                   float myvalue = piece.getLength();
                   sendLoadToBottom(piece, myRank, comm_width, myvalue);
@@ -184,7 +190,7 @@ int main(int argc, char** argv)
 
                 if (balanceUsingTime) {
                   double val = diffCoef*fabs(leftLoad-widthLoad) / max(widthLoad, leftLoad);
-                  val = recalc_coef(val);
+                  val = recalc_coef(val, diffPower);
 
                   float myvalue = piece.getWidth();
                   sendLoadToLeft(piece, myRank, myvalue);
@@ -204,7 +210,7 @@ int main(int argc, char** argv)
 
                 if (balanceUsingTime) {
                   double val = diffCoef*fabs(rightLoad-widthLoad) / max(widthLoad, rightLoad);
-                  val = recalc_coef(val);
+                  val = recalc_coef(val, diffPower);
 
                   float myvalue = piece.getWidth();
                   sendLoadToRight(piece, myRank, myvalue);
@@ -221,6 +227,7 @@ int main(int argc, char** argv)
             }
 
             lastBalanceTime = MPI_Wtime();
+            calcTime = 0;
             // MPI_Barrier(MPI_COMM_WORLD);
         }
 
@@ -229,7 +236,7 @@ int main(int argc, char** argv)
         double maxtime;
         MPI_Reduce(&workTime, &maxtime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 
-        if (myRank==0) cout << balanceOnceAt << "\t" << maxtime << endl;
+        if (myRank==0) cout << balanceOnceAt << "\t" << upTo << "\t" << diffPower << "\t" << maxtime << endl;
 
     } catch (char const *error) {
         cerr<<"Error: " << error << " at rank " << myRank << endl;

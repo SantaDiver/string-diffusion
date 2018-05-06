@@ -16,7 +16,7 @@ PieceOfWebFunc::PieceOfWebFunc(float coef, vector< vector<float> > &t0,
     _prev_prev = vector< vector<float> >(_width, vector<float>(_length, 0));
 }
 
-void PieceOfWebFunc::calcRes()
+double PieceOfWebFunc::calcRes()
 {
     if(_rank % _comm_width != 0) {
         MPI_Request request;
@@ -154,6 +154,8 @@ void PieceOfWebFunc::calcRes()
         bottomPoints = _asideBottom[_stepsCounter];
     }
 
+    double startTime = MPI_Wtime();
+
     _res[0][0] = 2*_prev[0][0] - _prev_prev[0][0] +
         _coef*(leftPoints[0] - 2*_prev[0][0] + _prev[1][0] +
                 topPoints[0] - 2*_prev[0][0] + _prev[0][1]);
@@ -204,6 +206,8 @@ void PieceOfWebFunc::calcRes()
             _prev[_width-1][_length-2] - 2*_prev[_width-1][_length-1] + bottomPoints[_width-1]);
 
     ++_stepsCounter;
+
+    return MPI_Wtime() - startTime;
 }
 void PieceOfWebFunc::setAsideVectors(vector< vector<float> > &asideLeft,
         vector< vector<float> > &asideRight, vector< vector<float> > &asideTop,

@@ -29,7 +29,7 @@ void sendLoadToLeft(PieceOfWebFunc &piece, int myRank, float load);
 float getRightLoad(int myRank);
 void sendLoadToRight(PieceOfWebFunc &piece, int myRank, float load);
 
-double recalc_coef(double coef);
-void overheat(int rank, int i, int stepsToCount, PieceOfWebFunc &piece);
+double recalc_coef(double coef, double power);
+double overheat(int rank, int i, int stepsToCount, PieceOfWebFunc &piece, double calcTime, double upTo);
 
 #endif
